@@ -15,23 +15,8 @@ from pyspark.sql.types import BooleanType
 
 from pyspark.sql import Row
 
-document_row = Row("document_id", "document_text")
-keyword_row = Row("keyword")
 
-documents_df = sc.parallelize([
-    document_row(1, "contour global,Guadaloupe"),
-    document_row(2, "blackfiled limited"),
-    document_row(3, "google limited")
-]).toDF()
-
-keywords_df = sc.parallelize([
-    keyword_row("contour global,Capuava"),
-    keyword_row("blacfield"),
-    keyword_row("gg")
-]).toDF()
-
-
-def string_match_percentage(col_1, col_2):
+def string_match_percentage(col_1, col_2, confidence):
     s = col_1.lower()
     t = col_2.lower()
 
@@ -55,16 +40,30 @@ def string_match_percentage(col_1, col_2):
                                             array_diffrence[row][col - 1] + 1,
                                             array_diffrence[row - 1][col - 1] + cost)
     match_percentage = ((len(s) + len(t)) - array_diffrence[row][col]) / (len(s) + len(t)) * 100
-    print(match_percentage)
-    if match_percentage > 58:
+    if match_percentage >= confidence:
         return True
     else:
         return False
 
 
-contains = udf(lambda s, q: string_match_percentage(s, q), BooleanType())
+document_row = Row("document_id", "document_text")
+keyword_row = Row("keyword")
 
-like_with_python_udf = (documents_df.crossJoin(keywords_df)
-                        .where(contains(col("document_text"), col("keyword")))
+documents_df = sc.parallelize([
+    document_row(1, "google llc"),
+    document_row(2, "blackfiled llc"),
+    document_row(3, "yahoo llc")
+]).toDF()
+
+keywords_df = sc.parallelize([
+    keyword_row("yahoo"),
+    keyword_row("google"),
+    keyword_row("apple")
+]).toDF()
+
+conditional_contains = udf(lambda s, q: string_match_percentage(s, q, confidence=70), BooleanType())
+
+like_joined_df = (documents_df.crossJoin(keywords_df)
+                        .where(conditional_contains(col("document_text"), col("keyword")))
                         .select(col("document_id"), col("keyword"), col("document_text")))
-like_with_python_udf.show()
+like_joined_df.show()
