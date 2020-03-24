@@ -67,3 +67,12 @@ like_joined_df = (documents_df.crossJoin(keywords_df)
                         .where(conditional_contains(col("document_text"), col("keyword")))
                         .select(col("document_id"), col("keyword"), col("document_text")))
 like_joined_df.show()
+
+
+# +-----------+-------+-------------+
+# |document_id|keyword|document_text|
+# +-----------+-------+-------------+
+# |          1| google|   google llc|
+# |          3|  yahoo|    yahoo llc|
+# +-----------+-------+-------------+
+
